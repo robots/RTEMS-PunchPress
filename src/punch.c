@@ -26,16 +26,12 @@ rtems_task task_puncher(rtems_task_argument controller_id)
 	rtems_status_code status;
 	rtems_id          period_id;
 	rtems_interval    ticks;
-	uint8_t *pLast;
-	uint8_t *pCur;
 
 	uint8_t head = HEAD_UP;
 	uint32_t events;
 
 	struct port_status last;
 	struct port_status cur;
-	pCur = (uint8_t *)&cur;
-	pLast = (uint8_t *)&last;
 
 	status = rtems_rate_monotonic_create(rtems_build_name( 'P', 'E', 'T', 'P' ), &period_id);
 
@@ -43,7 +39,7 @@ rtems_task task_puncher(rtems_task_argument controller_id)
 	ticks = rtems_clock_get_ticks_per_second() / 500;
 	printf("puncher ticks %d %d\n", ticks, rtems_clock_get_ticks_per_second());
 
-	pCur[0] = 0;
+	cur.raw = 0;
 
 	while(1) {
 		status = rtems_rate_monotonic_period(period_id, ticks);
@@ -52,13 +48,13 @@ rtems_task task_puncher(rtems_task_argument controller_id)
 //			break;
 		}
 
-		last = cur;
+		last.raw = cur.raw;
 
-		i386_inport_byte(PORT_STATUS, pCur[0]);
+		i386_inport_byte(PORT_STATUS, cur.raw);
 
-		if (pCur[0] != pLast[0]) {
+		if (last.raw != cur.raw) {
 			if (cur.fail) {
-				printf("Fatal FAIL \n");
+				printf("Fatal FAIL - System halted !\n");
 				rtems_fatal_error_occurred (2);
 			}
 		}
@@ -69,7 +65,7 @@ rtems_task task_puncher(rtems_task_argument controller_id)
 		 */
 		if (head == HEAD_UP) {
 			if (rtems_event_receive(EVENT_PUNCH, RTEMS_NO_WAIT, 0, &events) == RTEMS_SUCCESSFUL) {
-				printf("punching \n");
+				//printf("punching \n");
 				i386_outport_byte(PORT_PUNCH, 1);
 				head = HEAD_DOWNING;
 			}
@@ -79,7 +75,7 @@ rtems_task task_puncher(rtems_task_argument controller_id)
 			i386_outport_byte(PORT_PUNCH, 0);
 			head = HEAD_UPING;
 		} else if ((head == HEAD_UPING) && (cur.head_up)) {
-			printf("punched\n");
+			//printf("punched\n");
 			rtems_event_send(controller_id, EVENT_PUNCH_DONE);
 			head = HEAD_UP;
 		}

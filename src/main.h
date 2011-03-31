@@ -11,7 +11,7 @@
 
 // homing speeds
 #define HOMING_SPEED      40
-#define HOMING_SPEED_SLOW 20
+#define HOMING_SPEED_SLOW 18
 
 // manual control options (1mm/button press)
 #define MANUAL_STEP       (1*ENC_TICKS_PER_MM)
@@ -39,18 +39,20 @@
 #define BUTTON_PUNCH  0x10
 #define BUTTON_AUTO   0x80
 
+enum {
+	MODE_INIT,
+	MODE_HOMING,
+	MODE_HOMING2,
+	MODE_MANUAL_INIT,
+	MODE_MANUAL,
+	MODE_AUTO,
+};
+
 struct position {
 	uint32_t x;
 	uint32_t y;
 };
 
-
-enum {
-	MODE_INIT,
-	MODE_HOMING,
-	MODE_MANUAL,
-	MODE_AUTO,
-};
 
 extern uint8_t PunchPress_mode;
 extern struct position PunchPress_target;

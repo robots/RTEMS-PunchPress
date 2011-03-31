@@ -81,12 +81,9 @@ rtems_task task_pid(rtems_task_argument controller_id)
 	struct position cur = {0,0};
 
 
-	status = rtems_rate_monotonic_create(
-			rtems_build_name( 'P', 'E', 'R', 'p' ),
-			&period_id
-	);
-
+	status = rtems_rate_monotonic_create(rtems_build_name( 'P', 'E', 'R', 'p' ), &period_id);
 	ticks = rtems_clock_get_ticks_per_second() / 500;
+
 	printf("pidr ticks %d %d\n", ticks, rtems_clock_get_ticks_per_second());
 
 	//printf("PID thread is waiting \n");
@@ -107,14 +104,12 @@ rtems_task task_pid(rtems_task_argument controller_id)
 			target_reached = 0;
 			tgt = PunchPress_target;
 			count = 0;
-			printf("new target: x: %06ld y: %06ld  \n", PunchPress_target.x, PunchPress_target.y);
+//			printf("new target: x: %06ld y: %06ld  \n", PunchPress_target.x, PunchPress_target.y);
 		}
 
 		if ((target_reached == 0) && (count > 5)) {
-			count = 3;
-			if ((ABS(PunchPress_actual.x - tgt.x) < ERROR) ||
-					(ABS(PunchPress_actual.y - tgt.y) < ERROR)) {
-				//printf("target reached\n");
+			count = 0;
+			if ((ABS(PunchPress_actual.x - tgt.x) < ERROR) ||	(ABS(PunchPress_actual.y - tgt.y) < ERROR)) {
 				target_reached = 1;
 				rtems_event_send(controller_id, EVENT_TARGET_REACHED);
 			}
@@ -129,7 +124,6 @@ rtems_task task_pid(rtems_task_argument controller_id)
 
 		i386_outport_byte(PORT_PWR_X, pwr_x);
 		i386_outport_byte(PORT_PWR_Y, pwr_y);
-
 
 	}
 }

@@ -67,19 +67,14 @@ rtems_task task_encoder(rtems_task_argument controller_id)
 	rtems_status_code status;
 	rtems_id          period_id;
 	rtems_interval    ticks;
-	uint8_t *tmp;
+
 	uint8_t enc1;
 	uint8_t enc2;
 
 	struct port_position last;
 	struct port_position cur;
-	tmp = (uint8_t *)&cur;
 
-	status = rtems_rate_monotonic_create(
-			rtems_build_name( 'P', 'E', 'R', 'E' ),
-			&period_id
-	);
-
+	status = rtems_rate_monotonic_create(rtems_build_name( 'P', 'E', 'R', 'E' ), &period_id);
 	ticks = rtems_clock_get_ticks_per_second() / 500;
 
 	printf("encoder ticks %d %d\n", ticks, rtems_clock_get_ticks_per_second());
@@ -91,9 +86,9 @@ rtems_task task_encoder(rtems_task_argument controller_id)
 //			break;
 		}
 
-		last = cur;
+		last.raw = cur.raw;
 
-		i386_inport_byte(PORT_POSITION, tmp[0]);
+		i386_inport_byte(PORT_POSITION, cur.raw);
 
 		enc1 = encoder_decode(last.enc_x, cur.enc_x);
 		enc2 = encoder_decode(last.enc_y, cur.enc_y);
@@ -117,16 +112,18 @@ rtems_task task_encoder(rtems_task_argument controller_id)
 			rtems_semaphore_release(PunchPress_actual_sem);
 		}
 
-		if (PunchPress_mode == MODE_HOMING) {
+		if ((PunchPress_mode == MODE_HOMING) || (PunchPress_mode == MODE_HOMING2)) {
+			uint32_t event = 0;
 			if (last.safe_l != cur.safe_l) {
-				//printf("l event %x\n", cur.safe_l == 0 ? EVENT_SAFE_L_OFF : EVENT_SAFE_L_ON);
-				rtems_event_send(controller_id, cur.safe_l == 0 ? EVENT_SAFE_L_OFF : EVENT_SAFE_L_ON);
+				event |= cur.safe_l == 0 ? EVENT_SAFE_L_OFF : EVENT_SAFE_L_ON; 
 			}
 			
 			if (last.safe_t != cur.safe_t) {
-				//printf("t event %d\n", cur.safe_t);
-				rtems_event_send(controller_id, cur.safe_t == 0 ? EVENT_SAFE_T_OFF : EVENT_SAFE_T_ON);
+				event |= cur.safe_t == 0 ? EVENT_SAFE_T_OFF : EVENT_SAFE_T_ON;
 			}
+
+			if (event)
+				rtems_event_send(controller_id, event);
 		}
 /*
 		if (PunchPress_mode == MODE_HOMING1) {
